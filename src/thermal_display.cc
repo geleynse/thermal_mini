@@ -1,7 +1,10 @@
 #include "thermal_display.h"
 
-ThermalDisplay::ThermalDisplay(float *frame_buffer)
-    : tft_(TFT_WIDTH, TFT_HEIGHT), frame_buffer_(frame_buffer) {
+#include "linear.h"
+
+ThermalDisplay::ThermalDisplay(
+    std::array<float, CAM_BUFFER_WIDTH * CAM_BUFFER_HEIGHT> *input_frame_buffer)
+    : tft_(TFT_WIDTH, TFT_HEIGHT), input_frame_buffer_(input_frame_buffer) {
   Serial.println("Display setup begin.");
   tft_.init();
   tft_.setRotation(1);
@@ -9,24 +12,31 @@ ThermalDisplay::ThermalDisplay(float *frame_buffer)
   tft_.drawString("Starting", tft_.width() / 2 - 16, tft_.height() / 2 - 16);
 
   // Keep pixels square
-  this->display_pixel_width_ = this->display_pixel_height_ = tft_.width() / 32;
-  Serial.println("Display initialized.");
+  display_pixel_width_ = display_pixel_height_ =
+      tft_.width() / DISPLAY_BUFFER_WIDTH;
+  Serial.print("Display initialized with pixel size: ");
+  Serial.print(display_pixel_width_);
+  Serial.print(",");
+  Serial.println(display_pixel_height_);
 };
 
 void ThermalDisplay::Update() {
-  for (uint8_t h = 0; h < 24; h++) {
-    for (uint8_t w = 0; w < 32; w++) {
-      float t = this->frame_buffer_[h * 32 + w];
+  LinearInterpolate<CAM_BUFFER_WIDTH, CAM_BUFFER_HEIGHT>(input_frame_buffer_,
+                                                         &display_frame_buffer);
 
-      t = min(t, this->maxtemp_);
-      t = max(t, this->mintemp_);
+  for (uint8_t h = 0; h < DISPLAY_BUFFER_HEIGHT; h++) {
+    for (uint8_t w = 0; w < DISPLAY_BUFFER_WIDTH; w++) {
+      float t = display_frame_buffer[h * DISPLAY_BUFFER_WIDTH + w];
 
-      uint8_t colorIndex = map(t, this->mintemp_, this->maxtemp_, 0, 255);
+      t = min(t, maxtemp_);
+      t = max(t, mintemp_);
+
+      uint8_t colorIndex = map(t, mintemp_, maxtemp_, 0, 255);
 
       colorIndex = constrain(colorIndex, 0, 255);
-      tft_.fillRect(this->display_pixel_width_ * w,
-                    this->display_pixel_height_ * (23 - h),
-                    this->display_pixel_height_, this->display_pixel_width_,
+      tft_.fillRect(display_pixel_width_ * w,
+                    display_pixel_height_ * (DISPLAY_BUFFER_HEIGHT - 1 - h),
+                    display_pixel_height_, display_pixel_width_,
                     camColors_[colorIndex]);
     }
   }

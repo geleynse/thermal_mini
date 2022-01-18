@@ -11,21 +11,26 @@
 
 class ThermalDisplay {
  public:
-  ThermalDisplay(float *frame_buffer);
+  ThermalDisplay(std::array<float, CAM_BUFFER_WIDTH * CAM_BUFFER_HEIGHT>
+                     *input_frame_buffer);
 
   void Update();
+
+  uint16_t display_pixel_width_, display_pixel_height_;
 
  private:
   TFT_eSPI tft_;
 
-  uint16_t display_pixel_width_, display_pixel_height_;
-  float *frame_buffer_;
+  std::array<float, CAM_BUFFER_WIDTH * CAM_BUFFER_HEIGHT> *input_frame_buffer_;
+
+  std::array<float, DISPLAY_BUFFER_WIDTH * DISPLAY_BUFFER_HEIGHT>
+      display_frame_buffer;
 
   // low range of the sensor (this will be blue on the screen)
-  float mintemp_ = 20.0;
+  static constexpr float mintemp_ = 20.0;
 
   // high range of the sensor (this will be red on the screen)
-  float maxtemp_ = 35.0;
+  static constexpr float maxtemp_ = 35.0;
 
   // the colors we will be using
   const uint16_t camColors_[256] = {

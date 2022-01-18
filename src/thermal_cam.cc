@@ -1,6 +1,8 @@
 #include "thermal_cam.h"
 
-ThermalCam::ThermalCam(TwoWire* i2c, float* frame_buffer)
+ThermalCam::ThermalCam(
+    TwoWire* i2c,
+    std::array<float, CAM_BUFFER_WIDTH * CAM_BUFFER_HEIGHT>* frame_buffer)
     : i2c_bus_(i2c), frame_buffer_(frame_buffer) {
   if (!mlx.begin(MLX90640_I2CADDR_DEFAULT, i2c)) {
     ready = true;
@@ -24,7 +26,7 @@ ThermalCam::ThermalCam(TwoWire* i2c, float* frame_buffer)
 void ThermalCam::ReadToBuffer() {
   int result;
   try {
-    result = mlx.getFrame(this->frame_buffer_);
+    result = mlx.getFrame(frame_buffer_->data());
   } catch (const std::exception& e) {
     Serial.print("Thermal Cam error caught: ");
     Serial.println(e.what());
